@@ -1,0 +1,109 @@
+# there are two ways of creating restful apis in flask
+# ! using flkask without external libraries
+# using flask resful library
+
+# we wil u se NotImplemented 2
+
+from flask import*
+# import pymysql //*for db connection*//
+import pymysql
+from flask_restful import Resource,Api
+import pymysql.cursors
+
+# creayte a flask application 
+app = Flask(__name__)
+# create api object 
+api = Api(app)
+
+# we need to make a class for a particular resource 
+# the class willinherit from the recource  thus implimenting the POST,GET,DELETE AND POST METHODS
+
+class Employees(Resource):
+    def  post(self):
+        data = request.json
+        first_name =  data["first_name"]
+        others = data["others"]
+        salary = data["salary"]
+        department = ["department"]
+        connection = pymysql.connect(host='malombe.mysql.pythonanywhere-services.com', user='malombe', password='user1234', database='malombe$EmpApp')
+        cursor = connection.cursor()
+        # insert
+        sql = "INSERT INTO employees(first_name,others,salary,department)values(%s,%s,%s,%s)"
+        
+        
+        try:
+            # execute
+            data = (first_name,others,salary,department)
+            cursor.execute(sql,data)
+            # save changes
+            connection.commit()
+            return jsonify({"message": "Employee saved successfully"})
+        except:
+            connection.rollback ()
+            return jsonify({"message": "failed to save"})
+        
+    def get(self):
+        connection = pymysql.connect(host='malombe.mysql.pythonanywhere-services.com', user='malombe', password='user1234', database='malombe$EmpApp')
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+        sql = "select* from employees"
+        cursor.execute(sql)
+        # check if we have enmpty records
+        if cursor.rowcount == 0:
+            return jsonify({"message" : "no employees found"})
+        else:
+            employees = cursor.fetchall()
+            return jsonify(employees)
+    
+    
+    
+    def delete(self):
+        data = request.json
+        id = data["id"]
+        connection = pymysql.connect(host='malombe.mysql.pythonanywhere-services.com', user='malombe', password='user1234', database='malombe$EmpApp')
+        cursor = connection.cursor()
+        
+        
+        sql2 = "select* from employees where id = %s"
+        cursor.execute(sql2,id)
+        # check if id exists
+        # if it exists proceed to delete 
+        # if not dont delete 
+        if cursor.rowcount == 0: 
+            return jsonify({"message": "id not found"})
+        else:
+            sql = "delete from employees where id = %s"
+            try:
+                cursor.execute(sql,id)
+                connection.commit()
+                return jsonify({"message": "deleted succefully"})
+            except:
+                connection.rollback ()
+                return jsonify({"message": "failed to delete"})
+    
+    
+    def put(self):
+        data = request.json
+        id = data["id"]
+        first_name = data ["first_name"]
+        connection = pymysql.connect(host='malombe.mysql.pythonanywhere-services.com', user='malombe', password='user1234', database='malombe$EmpApp')
+        cursor = connection.cursor()
+        sql = "update employees SET first_name= %s where id = %s"
+        
+        try:
+            data = (first_name,id)
+            cursor.execute(sql,data)
+            
+            connection.commit()
+            
+            return  jsonify({"message": "employee updated successfully]"})
+        except:
+            connection.rollback ()
+            return jsonify({"message": "failed to update"})
+    
+    
+#    we  need to add our recdource /class thet wwe defined aalong with the corresponding url
+
+api.add_resource(Employees, '/employees')
+
+if __name__ == '__main__':
+    app.run(debug=True)
